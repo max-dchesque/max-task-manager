@@ -36,6 +36,16 @@ export interface TaskResponse {
   error?: string;
 }
 
+export interface TaskUpdateInput {
+  title?: string;
+  description?: string | null;
+  status?: 'pending' | 'in_progress' | 'done' | 'blocked';
+  priority?: 'alta' | 'media' | 'baixa';
+  deadline?: string | null;
+  metric?: string | null;
+  agent?: string | null;
+}
+
 /**
  * Cria uma nova task no sistema MAX Task Manager
  * 
@@ -85,6 +95,68 @@ export async function listTasks(): Promise<TaskResponse> {
     return {
       success: true,
       task: data.tasks,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Atualiza uma task existente
+ */
+export async function updateTask(taskId: string, input: TaskUpdateInput): Promise<TaskResponse> {
+  try {
+    const response = await fetch(`${API_URL}/api/tasks/${taskId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Failed to update task',
+      };
+    }
+
+    return {
+      success: true,
+      task: data.task,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Remove uma task
+ */
+export async function deleteTask(taskId: string): Promise<TaskResponse> {
+  try {
+    const response = await fetch(`${API_URL}/api/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Failed to delete task',
+      };
+    }
+
+    return {
+      success: true,
     };
   } catch (error) {
     return {

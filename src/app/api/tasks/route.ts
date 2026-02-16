@@ -14,37 +14,38 @@ export async function POST(request: NextRequest) {
   try {
     const body: CreateTaskInput = await request.json();
 
-    // Validação básica
-    if (!body.title) {
+    if (!body.title?.trim()) {
       return NextResponse.json(
         { error: 'Title is required' },
         { status: 400 }
       );
     }
 
-    // Buscar ou criar agent
     let agent = null;
     if (body.agent) {
+      const agentName = body.agent.trim();
       agent = await prisma.agent.upsert({
-        where: { botHandle: body.agent },
-        update: {},
+        where: { botHandle: agentName },
+        update: { name: agentName },
         create: {
-          name: body.agent,
-          botHandle: body.agent,
+          name: agentName,
+          botHandle: agentName,
           role: 'agent',
         },
       });
     }
 
-    // Criar task
     const task = await prisma.task.create({
       data: {
-        title: body.title,
+        title: body.title.trim(),
         description: body.description || null,
         priority: body.priority || 'media',
         deadline: body.deadline ? new Date(body.deadline) : null,
         metric: body.metric || null,
         agentId: agent?.id,
+      },
+      include: {
+        agent: true,
       },
     });
 
@@ -54,8 +55,12 @@ export async function POST(request: NextRequest) {
         task: {
           id: task.id,
           title: task.title,
+          description: task.description,
           status: task.status,
           priority: task.priority,
+          deadline: task.deadline?.toISOString(),
+          metric: task.metric,
+          agent: task.agent?.name,
           createdAt: task.createdAt.toISOString(),
         },
       },
