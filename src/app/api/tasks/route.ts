@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 interface CreateTaskInput {
   title: string;
@@ -21,36 +22,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Salvar no PostgreSQL via Prisma
-    // Por enquanto, retorna sucesso simbólico
-    const task = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: body.title,
-      description: body.description || '',
-      status: 'pending',
-      priority: body.priority || 'media',
-      deadline: body.deadline || null,
-      metric: body.metric || null,
-      agent: body.agent || 'Unknown',
-      createdAt: new Date().toISOString(),
-    };
+    // Buscar ou criar agent
+    let agent = null;
+    if (body.agent) {
+      agent = await prisma.agent.upsert({
+        where: { botHandle: body.agent },
+        update: {},
+        create: {
+          name: body.agent,
+          botHandle: body.agent,
+          role: 'agent',
+        },
+      });
+    }
 
-    // TODO: Prisma.create({ data: task })
+    // Criar task
+    const task = await prisma.task.create({
+      data: {
+        title: body.title,
+        description: body.description || null,
+        priority: body.priority || 'media',
+        deadline: body.deadline ? new Date(body.deadline) : null,
+        metric: body.metric || null,
+        agentId: agent?.id,
+      },
+    });
 
-    return NextResponse.json({ success: true, task }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        task: {
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+          createdAt: task.createdAt.toISOString(),
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
-  );
+  }
 }
 
 export async function GET() {
-  // TODO: Buscar tasks do PostgreSQL
-  return NextResponse.json({
-    tasks: [],
-    message: 'Prisma integration pending'
-  });
+  try {
+    const tasks = await prisma.task.findMany({
+      include: {
+        agent: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      tasks: tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.deadline?.toISOString(),
+        metric: task.metric,
+        agent: task.agent?.name,
+        createdAt: task.createdAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
 }
