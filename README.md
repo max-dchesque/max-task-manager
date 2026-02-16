@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MAX Task Manager
 
-## Getting Started
+Sistema de gerenciamento de tarefas para MAX e agentes (Ine, Satoshi, Dev).
 
-First, run the development server:
+## 🚀 Deploy
+
+### Easypanel (Docker)
+
+1. **Criar serviço Git Repository**
+   - Repository: `https://github.com/max-dchesque/max-task-manager`
+   - Branch: `master`
+   - Build Command: `npm run build`
+   - Start Command: `npm start`
+   - Port: `3000`
+
+2. **Variáveis de Ambiente**
+   ```bash
+   DATABASE_URL=postgresql://user:password@postgres:5432/maxtaskmanager
+   ```
+
+### Local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🤖 Integração com Agents
 
-## Learn More
+### Opção 1: API REST
 
-To learn more about Next.js, take a look at the following resources:
+**POST** `/api/tasks`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Atualizar estoque",
+    "description": "Sincronizar com Mitryus",
+    "priority": "alta",
+    "agent": "Ine",
+    "metric": "Estoque sincronizado"
+  }'
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Opção 2: CLI Tool
 
-## Deploy on Vercel
+```bash
+node scripts/task-cli.js "Título da task" \
+  --priority alta \
+  --agent Ine \
+  --metric "Estoque sincronizado"
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Opção 3: TypeScript/JavaScript
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```typescript
+import { createTask } from '@/lib/task-manager';
+
+await createTask({
+  title: 'Atualizar estoque',
+  description: 'Sincronizar com Mitryus',
+  priority: 'alta',
+  agent: 'Ine',
+  metric: 'Estoque sincronizado'
+});
+```
+
+---
+
+## 📋 Status das Tasks
+
+- `pending` - Pendente
+- `in_progress` - Em progresso
+- `done` - Concluída
+- `blocked` - Bloqueada
+
+## ⚡ Prioridades
+
+- `alta` - Urgente
+- `media` - Normal
+- `baixa` - Baixa prioridade
+
+---
+
+## 🔧 Tech Stack
+
+- Next.js 16 (App Router)
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Prisma + PostgreSQL
+- Docker
+
+---
+
+## 📦 Estrutura
+
+```
+├── src/
+│   ├── app/
+│   │   ├── api/tasks/     # API endpoints
+│   │   ├── page.tsx       # Dashboard
+│   │   └── layout.tsx
+│   ├── components/ui/     # shadcn components
+│   └── lib/
+│       ├── utils.ts
+│       └── task-manager.ts # API client
+├── prisma/
+│   └── schema.prisma      # Database schema
+└── scripts/
+    └── task-cli.js        # CLI tool para agents
+```
