@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -227,19 +228,9 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-4xl font-bold text-slate-900 dark:text-white">MAX Task Manager</h1>
-          <p className="text-slate-600 dark:text-slate-400">Sistema de gerenciamento de tarefas para MAX e agentes</p>
-        </div>
-
-        {error && (
-          <Card className="mb-6 border-red-300">
-            <CardContent className="p-4 text-sm text-red-700">{error}</CardContent>
-          </Card>
-        )}
-
+    <AppLayout>
+      <div className="container mx-auto max-w-7xl">
+        {/* Metrics */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
@@ -267,6 +258,7 @@ export default function Home() {
           </Card>
         </div>
 
+        {/* Quick Actions */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-xl">Nova Tarefa</CardTitle>
@@ -288,6 +280,14 @@ export default function Home() {
           </CardContent>
         </Card>
 
+        {/* Error Display */}
+        {error && (
+          <Card className="mb-6 border-red-300">
+            <CardContent className="p-4 text-sm text-red-700">{error}</CardContent>
+          </Card>
+        )}
+
+        {/* Tasks List */}
         <div className="space-y-4">
           {tasks.map((task) => {
             const isPending = Boolean(pendingTaskIds[task.id]);
@@ -381,6 +381,6 @@ export default function Home() {
           onSave={saveEditedTask}
         />
       </div>
-    </main>
+    </AppLayout>
   );
 }

@@ -31,5 +31,10 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   agentId     String?
-  agent       Agent?    @relation(fields: [agentId], references: [id])
+  agent       Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([priority])
+  @@index([agentId])
+  @@index([updatedAt])
 }

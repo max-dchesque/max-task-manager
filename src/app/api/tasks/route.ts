@@ -75,14 +75,34 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const agentFilter = searchParams.get('agent');
+    const statusFilter = searchParams.get('status');
+    const priorityFilter = searchParams.get('priority');
+
+    const where: any = {};
+
+    if (agentFilter) {
+      where.agent = { name: agentFilter };
+    }
+
+    if (statusFilter) {
+      where.status = statusFilter;
+    }
+
+    if (priorityFilter) {
+      where.priority = priorityFilter;
+    }
+
     const tasks = await prisma.task.findMany({
+      where,
       include: {
         agent: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        updatedAt: 'desc',
       },
     });
 
@@ -98,6 +118,7 @@ export async function GET() {
         metric: task.metric,
         agent: task.agent?.name,
         createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
       })),
     });
   } catch (error) {
