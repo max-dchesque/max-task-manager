@@ -9,7 +9,7 @@ RUN npm ci --legacy-peer-deps --no-optional && \
 
 # Copy Prisma schema e gerar client
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN ./node_modules/.bin/prisma generate
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
