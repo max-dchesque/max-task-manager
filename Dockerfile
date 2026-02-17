@@ -7,6 +7,10 @@ COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --no-optional && \
   npm cache clean --force
 
+# Copy Prisma schema e gerar client
+COPY prisma ./prisma
+RUN npx prisma generate
+
 # Stage 2: Builder
 FROM node:20-alpine AS builder
 WORKDIR /app
