@@ -230,6 +230,7 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="container mx-auto max-w-7xl">
+        {/* Vision Dashboard v2.0 */}
         {/* Metrics */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
           <Card>
