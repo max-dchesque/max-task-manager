@@ -31,8 +31,8 @@ ENV DATABASE_URL ${DATABASE_URL}
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install Prisma CLI locally for build
-RUN npm install --save-dev prisma@6 --legacy-peer-deps
+# Install ALL dependencies (including devDependencies for Prisma CLI)
+RUN npm install --legacy-peer-deps
 
 # Generate Prisma Client (with proper permissions)
 RUN npx --yes prisma@6 generate
@@ -53,21 +53,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Install Prisma CLI globally (version 6.x to match project)
-RUN npm install -g prisma@6 @prisma/client@6 --legacy-peer-deps && \
-    npm cache clean --force
-
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/docker-entrypoint.js ./docker-entrypoint.js
 
 # Set proper permissions
-RUN chmod +x docker-entrypoint.js
+RUN chmod +x docker-entrypoint.js && \
+    chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs

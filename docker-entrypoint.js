@@ -4,9 +4,10 @@
  * MAX Task Manager - Docker Entrypoint
  *
  * This script runs before the Next.js server starts:
- * 1. Generates Prisma Client
- * 2. Pushes schema to database (creates tables if needed)
- * 3. Starts the Next.js server
+ * 1. Pushes schema to database (creates tables if needed)
+ * 2. Starts the Next.js server
+ *
+ * Note: Prisma Client is already generated during build
  */
 
 const { execSync } = require('child_process');
@@ -37,30 +38,18 @@ async function main() {
   const startTime = Date.now();
 
   try {
-    // Step 1: Generate Prisma Client
-    console.log('📦 Step 1: Prisma Client Generation');
-    console.log('---------------------------------------');
-    if (!runCommand('prisma generate', 'Generating Prisma Client')) {
-      throw new Error('Prisma generate failed');
-    }
-
-    // Step 2: Push schema to database
-    console.log('💾 Step 2: Database Schema Setup');
-    console.log('-----------------------------------');
-    if (!runCommand('prisma db push --skip-generate', 'Pushing schema to database')) {
+    // Step 1: Push schema to database (Prisma Client already generated)
+    console.log('💾 Database Schema Setup');
+    console.log('-------------------------');
+    if (!runCommand('npx --yes prisma@6 db push --skip-generate', 'Pushing schema to database')) {
       throw new Error('Prisma db push failed');
     }
-
-    // Step 3: Verify database connection
-    console.log('🔗 Step 3: Database Verification');
-    console.log('----------------------------------');
-    // Optional: You could add a simple query here to verify connection
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✨ Setup completed in ${duration}s`);
     console.log('🚀 Starting MAX Task Manager...\n');
 
-    // Step 4: Start Next.js server
+    // Step 2: Start Next.js server
     require('./max-task-manager/server.js');
 
   } catch (error) {
