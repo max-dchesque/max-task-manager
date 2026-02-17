@@ -54,10 +54,12 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy necessary files from builder
+# Copy Next.js standalone app
+COPY --from=builder /app/.next/standalone/max-task-manager/server.js ./server.js
+COPY --from=builder /app/.next/standalone/max-task-manager/.next ./.next
+COPY --from=builder /app/.next/standalone/max-task-manager/node_modules ./node_modules
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone/max-task-manager ./max-task-manager
-COPY --from=builder /app/.next/standalone/node_modules ./node_modules
-COPY --from=builder /app/.next/static ./max-task-manager/.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/docker-entrypoint.js ./docker-entrypoint.js
 

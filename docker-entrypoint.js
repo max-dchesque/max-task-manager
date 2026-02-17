@@ -50,7 +50,7 @@ async function main() {
     console.log('🚀 Starting MAX Task Manager...\n');
 
     // Step 2: Start Next.js server
-    require('./max-task-manager/server.js');
+    require('./server.js');
 
   } catch (error) {
     console.error('\n💀 FATAL ERROR during startup:');
