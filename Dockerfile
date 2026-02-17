@@ -55,10 +55,10 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next/standalone/max-task-manager ./max-task-manager
+COPY --from=builder /app/.next/standalone/node_modules ./node_modules
+COPY --from=builder /app/.next/static ./max-task-manager/.next/static
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/docker-entrypoint.js ./docker-entrypoint.js
 
 # Set proper permissions
