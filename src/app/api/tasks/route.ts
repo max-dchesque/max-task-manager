@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      tasks: tasks.map(task => ({
+      tasks: tasks.map((task: any) => ({
         id: task.id,
         title: task.title,
         description: task.description,
