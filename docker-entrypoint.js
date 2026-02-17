@@ -19,7 +19,7 @@ try {
   console.log('🚀 Starting MAX Task Manager...');
   
   // Importar e iniciar o servidor Next.js standalone
-  require('./server.js');
+  require('./max-task-manager/server.js');
   
 } catch (error) {
   console.error('❌ Migration failed:', error.message);
