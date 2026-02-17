@@ -4,7 +4,8 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --no-optional && \
+  npm cache clean --force
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -24,11 +25,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Instalar Prisma CLI no runner
-RUN npm install -g prisma @prisma/client --legacy-peer-deps
+# Instalar Prisma CLI no runner (versão específica pra reduzir tamanho)
+RUN npm install -g prisma @prisma/client --legacy-peer-deps && \
+    npm cache clean --force
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
