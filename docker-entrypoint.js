@@ -9,11 +9,11 @@ const path = require('path');
 console.log('🔄 Running Prisma migrations...');
 
 try {
-  // Gerar Prisma Client (usa versão 6.x local)
-  execSync('npx --yes prisma@6 generate', { stdio: 'inherit' });
+  // Gerar Prisma Client (Prisma 6.x instalado globalmente no runner)
+  execSync('prisma generate', { stdio: 'inherit' });
   
-  // Push schema para o banco (usa versão 6.x local)
-  execSync('npx --yes prisma@6 db push', { stdio: 'inherit' });
+  // Push schema para o banco
+  execSync('prisma db push', { stdio: 'inherit' });
   
   console.log('✅ Migrations completed!');
   console.log('🚀 Starting MAX Task Manager...');
