@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Task, CheckCircle2, Clock, AlertCircle, TrendingUp, Zap } from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock, AlertCircle, TrendingUp, Zap } from "lucide-react";
 
 interface Metric {
   label: string;
@@ -48,7 +48,7 @@ export default function DashboardPage() {
               label: "Total Tasks",
               value: total,
               change: "+12%",
-              icon: Task,
+              icon: ClipboardList,
               color: "bg-neon-400 text-neon-950",
             },
             {
