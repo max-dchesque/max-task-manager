@@ -1,5 +1,6 @@
-# MAX Task Manager - Optimized Multi-Stage Dockerfile
-# Next.js 16 + Prisma 6.x + PostgreSQL
+# MAX Task Manager - Production Dockerfile
+# Next.js 16.1.6 + Prisma 6.x + PostgreSQL
+# Audited and optimized after multiple deployment iterations
 
 # =============================================================================
 # Stage 1: Dependencies
@@ -10,7 +11,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps --no-optional && \
+RUN npm ci --legacy-peer-deps && \
     npm cache clean --force
 
 # =============================================================================
@@ -22,19 +23,15 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy source code
+# Copy source code and config
 COPY . .
 
-# Build arguments for database URL
+# Build arguments
 ARG DATABASE_URL
-ENV DATABASE_URL ${DATABASE_URL}
-
+ENV DATABASE_URL=${DATABASE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install ALL dependencies (including devDependencies for Prisma CLI)
-RUN npm install --legacy-peer-deps
-
-# Generate Prisma Client (with proper permissions)
+# Generate Prisma Client (before build)
 RUN npx --yes prisma@6 generate
 
 # Build Next.js application
@@ -53,14 +50,18 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy necessary files from builder
-# Copy Next.js standalone app
-COPY --from=builder /app/.next/standalone/max-task-manager/server.js ./server.js
-COPY --from=builder /app/.next/standalone/max-task-manager/.next ./.next
-COPY --from=builder /app/.next/standalone/max-task-manager/node_modules ./node_modules
-COPY --from=builder /app/.next/static ./.next/static
+# Copy Next.js standalone output
+# Next.js 16 standalone structure: server.js is at the root
+COPY --from=builder /app/.next/standalone/server.js ./server.js
+COPY --from=builder /app/.next/standalone/node_modules ./node_modules
+COPY --from=builder /app/.next/standalone/package.json ./package.json
+
+# Copy static assets and Prisma files
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/static ./server-app/.next/static
 COPY --from=builder /app/prisma ./prisma
+
+# Copy entrypoint script
 COPY --from=builder /app/docker-entrypoint.js ./docker-entrypoint.js
 
 # Set proper permissions
