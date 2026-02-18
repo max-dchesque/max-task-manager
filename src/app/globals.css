@@ -4,57 +4,153 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    /* Wonder Games Design System - Adaptado para MAX Task Manager */
+
+    /* Cores Primárias - Neon Brand */
+    --neon-400: 212 251 8;   /* #D4FB08 - principal */
+    --neon-500: 186 226 0;   /* #BAE200 - hover */
+    --neon-950: 37 51 0;    /* #253300 - texto sobre neon */
+
+    /* Light Mode Colors */
+    --background: 255 255 255;  /* #FFFFFF */
+    --foreground: 0 0 0;      /* #000000 */
+    --card: 255 255 255;       /* #FFFFFF */
+    --card-foreground: 0 0 0;
+    --border: 229 229 229;    /* #E5E5E5 */
+    --primary: 212 251 8;     /* neon */
+    --primary-foreground: 37 51 0;
+    --secondary: 130 130 130; /* grey-700 */
+    --muted: 229 229 229;
+    --muted-foreground: 130 130 130;
+    --accent: 212 251 8;
+    --accent-foreground: 37 51 0;
+
+    /* Dark Mode Colors */
+    --dark-background: 10 10 10;      /* #0A0A0A */
+    --dark-foreground: 255 255 255;
+    --dark-card: 37 37 37;             /* #252525 */
+    --dark-card-foreground: 255 255 255;
+    --dark-border: 130 130 130;
+    --dark-primary: 212 251 8;
+    --dark-primary-foreground: 37 51 0;
+    --dark-secondary: 130 130 130;
+    --dark-muted: 37 37 37;
+    --dark-muted-foreground: 229 229 229;
+
+    /* Layout Tokens */
+    --gap: 8px;
+    --radius: 16px;
+    --h-controller: 80px;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 64px;
+
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+
+    /* Shadows - Glassmorphism */
+    --shadow-glass: inset 0 1px 3px 0 rgba(255, 255, 255, 0.05),
+                  inset -1px -1px 3px 0 rgba(0, 0, 0, 0.1),
+                  inset -1px -1px 0 0 rgba(0, 0, 0, 0.2);
+
+    --shadow-card: 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+                  0 1px 1px 0 inset rgba(0, 0, 0, 0.1),
+                  0 1px 3px 0 rgba(0, 0, 0, 0.3);
+
+    --shadow-neon: 0 0 4px rgb(212, 251, 8);
+
+    --shadow-glow: inset 0 0 20px 5px rgba(165, 167, 171, 0.2);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: var(--dark-background);
+    --foreground: var(--dark-foreground);
+    --card: var(--dark-card);
+    --card-foreground: var(--dark-card-foreground);
+    --border: var(--dark-border);
+    --primary: var(--dark-primary);
+    --primary-foreground: var(--dark-primary-foreground);
   }
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    @apply border-border;
   }
+
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism utility */
+  .glass {
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-glass);
+  }
+
+  /* Neon glow effect */
+  .neon-glow {
+    box-shadow: var(--shadow-neon);
+  }
+
+  /* Card elevado */
+  .card-elevated {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Inner glow effect */
+  .inner-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Text gradient utility */
+  .text-gradient-neon {
+    @apply bg-gradient-to-r from-[#D4FB08] to-[#BAE200];
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Animations */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 4px rgb(212, 251, 8);
+    }
+    50% {
+      box-shadow: 0 0 12px rgb(212, 251, 8), 0 0 20px rgb(186, 226, 0);
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    transition: all 1s cubic-bezier(0.3, 0, 0.04, 1);
   }
 }

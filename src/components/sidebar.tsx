@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Network, Kanban } from "lucide-react"
+import { Home, Network, Kanban, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -15,16 +15,29 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-slate-50 dark:bg-slate-900">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-          MAX Task Manager
-        </h1>
+    <div className="flex h-screen w-72 flex-col bg-card dark:bg-dark-card border-r border-border dark:border-dark-border">
+      {/* Logo Section */}
+      <div className="flex h-20 items-center border-b border-border dark:border-dark-border px-6">
+        <div className="flex items-center gap-3">
+          {/* Logo Icon com Neon Glow */}
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neon-400 animate-glow">
+            <Zap className="h-6 w-6 text-neon-950" />
+          </div>
+
+          {/* Logo Text */}
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold text-foreground dark:text-dark-foreground">
+              MAX Task Manager
+            </h1>
+            <span className="text-xs text-neon-400 font-semibold tracking-wide">
+              V2.0
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-2 p-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon
@@ -34,24 +47,32 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300",
                 isActive
-                  ? "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                  ? "bg-neon-400 text-neon-950 shadow-neon font-semibold"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground dark:hover:bg-white/10 dark:hover:text-dark-foreground"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" strokeWidth={2} />
               {item.label}
             </Link>
           )
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t p-4">
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          v2.0 - Vision Dashboard
-        </p>
+      {/* Footer com Version */}
+      <div className="border-t border-border dark:border-dark-border p-6">
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground dark:text-dark-muted-foreground">
+            Powered by Wonder Games Design
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-neon-400 animate-glow" />
+            <span className="text-xs font-semibold text-neon-400">
+              Vision Dashboard
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   )

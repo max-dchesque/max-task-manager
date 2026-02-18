@@ -8,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      "rounded-xl bg-card text-card-foreground shadow-card",
       className
     )}
     {...props}
@@ -35,7 +35,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-2xl font-bold leading-none tracking-tight",
       className
     )}
     {...props}
@@ -75,4 +75,26 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+// Wonder Games Gradient Card
+const GradientCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    colorFrom?: string
+    colorTo?: string
+  }
+>(({ className, colorFrom = "#D4FB08", colorTo = "#BAE200", ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-xl overflow-hidden shadow-card",
+      className
+    )}
+    style={{
+      background: `linear-gradient(to bottom right, ${colorFrom}, ${colorTo})`
+    }}
+    {...props}
+  />
+))
+GradientCard.displayName = "GradientCard"
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, GradientCard }

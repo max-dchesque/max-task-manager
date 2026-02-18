@@ -1,386 +1,231 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EditTaskDialog } from "@/components/edit-task-dialog";
-import { Plus, Trash2, Clock, Target, AlertCircle, Pencil } from "lucide-react";
-import type { Task, TaskUpdateInput } from "@/lib/task-types";
+import { Task, CheckCircle2, Clock, AlertCircle, TrendingUp, Zap } from "lucide-react";
 
-const statusLabels = {
-  pending: "Pendente",
-  in_progress: "Em Progresso",
-  done: "Concluido",
-  blocked: "Bloqueado",
-};
-
-const statusColors = {
-  pending: "secondary",
-  in_progress: "default",
-  done: "success",
-  blocked: "destructive",
-} as const;
-
-const priorityColors = {
-  alta: "destructive",
-  media: "warning",
-  baixa: "secondary",
-} as const;
-
-function parseTask(payload: Partial<Task>): Task {
-  return {
-    id: payload.id || "",
-    title: payload.title || "",
-    description: payload.description || null,
-    status: payload.status || "pending",
-    priority: payload.priority || "media",
-    deadline: payload.deadline || null,
-    metric: payload.metric || null,
-    agent: payload.agent || null,
-    createdAt: payload.createdAt,
-  };
+interface Metric {
+  label: string;
+  value: string | number;
+  change?: string;
+  icon: React.ElementType;
+  color: string;
 }
 
-export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
+interface TaskItem {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+}
+
+export default function DashboardPage() {
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [pendingTaskIds, setPendingTaskIds] = useState<Record<string, boolean>>({});
+  const [metrics, setMetrics] = useState<Metric[]>([]);
 
   useEffect(() => {
-    const loadTasks = async () => {
-      setIsLoading(true);
+    const loadDashboard = async () => {
       try {
-        const response = await fetch("/api/tasks", { cache: "no-store" });
-        const data = await response.json();
+        // Load tasks
+        const tasksRes = await fetch("/api/tasks");
+        const tasksData = await tasksRes.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || "Falha ao buscar tarefas");
+        if (tasksData.success) {
+          setTasks(tasksData.tasks || []);
+
+          // Calculate metrics
+          const total = tasksData.tasks?.length || 0;
+          const completed = tasksData.tasks?.filter((t: TaskItem) => t.status === "done").length || 0;
+          const pending = tasksData.tasks?.filter((t: TaskItem) => t.status === "pending").length || 0;
+          const inProgress = tasksData.tasks?.filter((t: TaskItem) => t.status === "in-progress").length || 0;
+
+          setMetrics([
+            {
+              label: "Total Tasks",
+              value: total,
+              change: "+12%",
+              icon: Task,
+              color: "bg-neon-400 text-neon-950",
+            },
+            {
+              label: "Completed",
+              value: completed,
+              change: "+8%",
+              icon: CheckCircle2,
+              color: "bg-status-online text-white",
+            },
+            {
+              label: "In Progress",
+              value: inProgress,
+              change: "Active",
+              icon: Clock,
+              color: "bg-status-idle text-white",
+            },
+            {
+              label: "Pending",
+              value: pending,
+              change: "Action needed",
+              icon: AlertCircle,
+              color: "bg-status-busy text-white",
+            },
+          ]);
         }
-
-        const parsedTasks = (data.tasks as Partial<Task>[]).map(parseTask);
-        setTasks(parsedTasks);
-        setError(null);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Erro desconhecido");
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    void loadTasks();
+    void loadDashboard();
   }, []);
 
-  const stats = useMemo(
-    () => ({
-      total: tasks.length,
-      pending: tasks.filter((t) => t.status === "pending").length,
-      inProgress: tasks.filter((t) => t.status === "in_progress").length,
-      done: tasks.filter((t) => t.status === "done").length,
-    }),
-    [tasks]
-  );
-
-  const setTaskPending = (taskId: string, pending: boolean) => {
-    setPendingTaskIds((prev) => {
-      const next = { ...prev };
-      if (pending) {
-        next[taskId] = true;
-      } else {
-        delete next[taskId];
-      }
-      return next;
-    });
+  const statusColors: Record<string, string> = {
+    pending: "bg-status-idle text-white",
+    "in-progress": "bg-status-online text-white",
+    done: "bg-status-offline text-white",
+    blocked: "bg-status-busy text-white",
   };
 
-  const addTask = async () => {
-    const title = newTaskTitle.trim();
-    if (!title) return;
-
-    setError(null);
-    const tempId = `temp-${Date.now()}`;
-    const optimisticTask: Task = {
-      id: tempId,
-      title,
-      status: "pending",
-      priority: "media",
-      createdAt: new Date().toISOString(),
-    };
-
-    setTasks((prev) => [optimisticTask, ...prev]);
-    setNewTaskTitle("");
-
-    try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Falha ao criar tarefa");
-      }
-
-      setTasks((prev) => prev.map((task) => (task.id === tempId ? parseTask(data.task) : task)));
-    } catch (createError) {
-      setTasks((prev) => prev.filter((task) => task.id !== tempId));
-      setError(createError instanceof Error ? createError.message : "Erro desconhecido");
-    }
-  };
-
-  const updateTask = async (taskId: string, input: TaskUpdateInput) => {
-    const previousTask = tasks.find((task) => task.id === taskId);
-    if (!previousTask) {
-      return;
-    }
-
-    setError(null);
-    setTaskPending(taskId, true);
-
-    const optimisticTask: Task = {
-      ...previousTask,
-      ...input,
-      description: input.description !== undefined ? input.description : previousTask.description,
-      deadline: input.deadline !== undefined ? input.deadline : previousTask.deadline,
-      metric: input.metric !== undefined ? input.metric : previousTask.metric,
-      agent: input.agent !== undefined ? input.agent : previousTask.agent,
-    };
-
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? optimisticTask : task)));
-
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Falha ao atualizar tarefa");
-      }
-
-      setTasks((prev) => prev.map((task) => (task.id === taskId ? parseTask(data.task) : task)));
-    } catch (updateError) {
-      setTasks((prev) => prev.map((task) => (task.id === taskId ? previousTask : task)));
-      setError(updateError instanceof Error ? updateError.message : "Erro desconhecido");
-      throw updateError;
-    } finally {
-      setTaskPending(taskId, false);
-    }
-  };
-
-  const updateStatus = async (taskId: string, status: Task["status"]) => {
-    try {
-      await updateTask(taskId, { status });
-    } catch {
-      // rollback handled in updateTask
-    }
-  };
-
-  const saveEditedTask = async (taskId: string, input: TaskUpdateInput) => {
-    setIsSavingEdit(true);
-    try {
-      await updateTask(taskId, input);
-      setEditingTask(null);
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
-
-  const deleteTask = async (taskId: string) => {
-    const previousIndex = tasks.findIndex((task) => task.id === taskId);
-    const removedTask = tasks[previousIndex];
-    if (!removedTask) {
-      return;
-    }
-
-    setError(null);
-    setTaskPending(taskId, true);
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
-
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "DELETE",
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Falha ao excluir tarefa");
-      }
-    } catch (deleteError) {
-      setTasks((prev) => {
-        const restored = [...prev];
-        restored.splice(previousIndex, 0, removedTask);
-        return restored;
-      });
-      setError(deleteError instanceof Error ? deleteError.message : "Erro desconhecido");
-    } finally {
-      setTaskPending(taskId, false);
-    }
+  const priorityColors: Record<string, string> = {
+    alta: "bg-priority-alta text-white",
+    media: "bg-priority-media text-white",
+    baixa: "bg-priority-baixa text-white",
   };
 
   return (
     <AppLayout>
-      <div className="container mx-auto max-w-7xl">
-        {/* Vision Dashboard v2.0 */}
-        {/* Metrics */}
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Total</CardDescription>
-              <CardTitle className="text-3xl">{stats.total}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Pendentes</CardDescription>
-              <CardTitle className="text-3xl text-yellow-600">{stats.pending}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Em Progresso</CardDescription>
-              <CardTitle className="text-3xl text-blue-600">{stats.inProgress}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Concluidos</CardDescription>
-              <CardTitle className="text-3xl text-green-600">{stats.done}</CardTitle>
-            </CardHeader>
-          </Card>
+      <div className="space-y-8">
+        {/* Header Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-1 rounded-full bg-neon-400 animate-glow" />
+            <div>
+              <h1 className="text-4xl font-bold text-foreground dark:text-dark-foreground">
+                Vision Dashboard
+              </h1>
+              <p className="text-muted-foreground dark:text-dark-muted-foreground mt-1">
+                Task Manager v2.0 — Wonder Games Design System
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Quick Actions */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Nova Tarefa</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Titulo da tarefa..."
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && void addTask()}
-                className="flex-1"
-              />
-              <Button onClick={() => void addTask()} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Error Display */}
-        {error && (
-          <Card className="mb-6 border-red-300">
-            <CardContent className="p-4 text-sm text-red-700">{error}</CardContent>
-          </Card>
-        )}
-
-        {/* Tasks List */}
-        <div className="space-y-4">
-          {tasks.map((task) => {
-            const isPending = Boolean(pendingTaskIds[task.id]);
-
+        {/* Metrics Grid - Wonder Games Style */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {metrics.map((metric, index) => {
+            const Icon = metric.icon;
             return (
-              <Card key={task.id} className="transition-shadow hover:shadow-md">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="mb-2 flex items-center gap-2">
-                        <h3 className="text-lg font-semibold">{task.title}</h3>
-                        <Badge variant={priorityColors[task.priority]}>{task.priority.toUpperCase()}</Badge>
-                      </div>
-
-                      {task.description && (
-                        <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{task.description}</p>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <Badge variant={statusColors[task.status]}>{statusLabels[task.status]}</Badge>
-
-                        {task.agent && <span className="text-slate-500">Agent: {task.agent}</span>}
-
-                        {task.deadline && (
-                          <span className="flex items-center gap-1 text-slate-500">
-                            <Clock className="h-3 w-3" />
-                            {new Date(task.deadline).toLocaleDateString("pt-BR")}
-                          </span>
-                        )}
-
-                        {task.metric && (
-                          <span className="flex items-center gap-1 text-blue-600">
-                            <Target className="h-3 w-3" />
-                            {task.metric}
-                          </span>
-                        )}
-                      </div>
+              <Card
+                key={index}
+                className="card-elevated bg-card dark:bg-dark-card border-border dark:border-dark-border overflow-hidden group hover:shadow-neon transition-all duration-300"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-border dark:border-dark-border">
+                      <Icon className="h-6 w-6 text-muted-foreground dark:text-dark-muted-foreground" />
                     </div>
-
-                    <div className="flex gap-2">
-                      {task.status !== "done" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={isPending}
-                          onClick={() =>
-                            void updateStatus(task.id, task.status === "pending" ? "in_progress" : "done")
-                          }
-                        >
-                          {task.status === "pending" ? "Iniciar" : "Concluir"}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={isPending}
-                        onClick={() => setEditingTask(task)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={isPending}
-                        onClick={() => void deleteTask(task.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
+                    <Badge
+                      variant="outline"
+                      className="bg-white/5 border-0 text-xs font-semibold text-muted-foreground dark:text-dark-muted-foreground"
+                    >
+                      {metric.change}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold text-foreground dark:text-dark-foreground">
+                      {metric.value}
+                    </p>
+                    <p className="text-sm text-muted-foreground dark:text-dark-muted-foreground">
+                      {metric.label}
+                    </p>
                   </div>
                 </CardContent>
+                {/* Neon Glow Bar */}
+                <div className={`h-1 w-full ${metric.color} animate-glow`} />
               </Card>
             );
           })}
         </div>
 
-        {!isLoading && tasks.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <AlertCircle className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-              <p className="text-slate-500">Nenhuma tarefa encontrada</p>
-            </CardContent>
-          </Card>
-        )}
-
-        <EditTaskDialog
-          open={Boolean(editingTask)}
-          task={editingTask}
-          isSaving={isSavingEdit}
-          onClose={() => setEditingTask(null)}
-          onSave={saveEditedTask}
-        />
+        {/* Recent Tasks - Wonder Games Project Card Style */}
+        <Card className="card-elevated bg-card dark:bg-dark-card border-border dark:border-dark-border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold text-foreground dark:text-dark-foreground">
+                Recent Tasks
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-neon-400 animate-glow" />
+                <span className="text-xs font-semibold text-neon-400">
+                  LIVE
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="p-12 text-center">
+                <Zap className="h-8 w-8 animate-pulse mx-auto text-neon-400" />
+                <p className="mt-4 text-sm text-muted-foreground dark:text-dark-muted-foreground">
+                  Loading dashboard...
+                </p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="p-12 text-center">
+                <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground dark:text-dark-muted-foreground mb-4" />
+                <p className="text-lg font-semibold text-foreground dark:text-dark-foreground mb-2">
+                  No tasks yet
+                </p>
+                <p className="text-sm text-muted-foreground dark:text-dark-muted-foreground">
+                  Create your first task to get started
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tasks.slice(0, 5).map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-border dark:border-dark-border hover:bg-white/10 hover:border-neon-400/50 transition-all duration-300 group"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground dark:text-dark-foreground group-hover:text-neon-400 transition-colors">
+                        {task.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground dark:text-dark-muted-foreground mt-1">
+                        {new Date(task.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={`text-xs font-semibold border-0 ${
+                          priorityColors[task.priority] || "bg-neutral-700 text-white"
+                        }`}
+                      >
+                        {task.priority}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs font-semibold border-0 ${
+                          statusColors[task.status] || "bg-neutral-700 text-white"
+                        }`}
+                      >
+                        {task.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
