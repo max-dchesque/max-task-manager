@@ -25,11 +25,11 @@ async function main() {
   const startTime = Date.now();
 
   try {
-    // Step 1: Database Migration (usa migrate deploy, não db push)
+    // Step 1: Database Migration (usa npx para garantir Prisma disponível)
     console.log('💾 Step 1/2: Database Migration');
     console.log('=====================================');
     const ok = runCommand(
-      'node_modules/.bin/prisma migrate deploy',
+      'npx --yes prisma@6 migrate deploy',
       'Applying pending migrations'
     );
     if (!ok) process.exit(1);
