@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
           where: { id: taskId },
           data: {
             status,
-            agent: agentName,
             ...(note && { description: `${task.description}\n\n[Agent Update - ${new Date().toLocaleString("pt-BR")}]\n${note}`.trim() }),
             updatedAt: new Date(),
           },
