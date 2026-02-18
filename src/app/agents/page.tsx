@@ -4,16 +4,83 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Cpu, Network } from "lucide-react";
+import { Bot, Cpu, Network, ChevronRight } from "lucide-react";
 
 interface Agent {
   id: string;
   name: string;
   role: string;
-  description: string;
+  description: string | null;
+  emoji: string | null;
+  color: string | null;
+  status: string;
   botHandle: string | null;
-  skills: string[];
-  status: 'online' | 'offline' | 'idle';
+  children: Agent[];
+}
+
+function AgentCard({ agent, level = 0 }: { agent: Agent; level?: number }) {
+  const statusColors = {
+    online: "bg-green-500",
+    offline: "bg-slate-400",
+    busy: "bg-red-500",
+    idle: "bg-yellow-500",
+  };
+
+  const indent = level * 2;
+
+  return (
+    <div className="space-y-2" style={{ marginLeft: `${indent}rem` }}>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full text-xl"
+              style={{ backgroundColor: agent.color || '#3B82F6' }}
+            >
+              {agent.emoji || '🤖'}
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-lg">{agent.name}</CardTitle>
+              <CardDescription>{agent.role}</CardDescription>
+            </div>
+            <Badge
+              variant="outline"
+              className={`${statusColors[agent.status as keyof typeof statusColors] || 'bg-slate-400'} text-white border-0`}
+            >
+              {agent.status?.toUpperCase() || 'OFFLINE'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {agent.description && (
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              {agent.description}
+            </p>
+          )}
+
+          {agent.botHandle && (
+            <div className="text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Telegram: </span>
+              <code className="rounded bg-slate-100 px-2 py-1 text-xs dark:bg-slate-800">
+                {agent.botHandle}
+              </code>
+            </div>
+          )}
+
+          {agent.children && agent.children.length > 0 && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+              <ChevronRight className="h-4 w-4" />
+              <span>{agent.children.length} subagente{agent.children.length > 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {agent.children && agent.children.map((child) => (
+        <AgentCard key={child.id} agent={child} level={level + 1} />
+      ))}
+    </div>
+  );
 }
 
 export default function AgentsPage() {
@@ -40,12 +107,6 @@ export default function AgentsPage() {
     void loadAgents();
   }, []);
 
-  const statusColors = {
-    online: "bg-green-500",
-    offline: "bg-slate-400",
-    idle: "bg-yellow-500",
-  };
-
   return (
     <AppLayout>
       <div className="container mx-auto max-w-7xl">
@@ -65,89 +126,10 @@ export default function AgentsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {/* Root Node - MAX COO */}
-            <Card className="border-2 border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600">
-                    <Network className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl">MAX COO</CardTitle>
-                    <CardDescription>Coordenador da Operação</CardDescription>
-                  </div>
-                  <Badge className="ml-auto bg-green-500">ONLINE</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Gerencia toda a operação de agents. Coordena tarefas, monitora métricas e otimiza fluxos de trabalho.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Agents Level */}
-            <div className="ml-8 space-y-4 border-l-2 border-slate-200 pl-8 dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Operational Agents
-              </h3>
-
-              {agents.map((agent) => (
-                <Card key={agent.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
-                        <Bot className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{agent.name}</CardTitle>
-                        <CardDescription>{agent.role}</CardDescription>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={`${statusColors[agent.status]} text-white border-0`}
-                      >
-                        {agent.status.toUpperCase()}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-                      {agent.description}
-                    </p>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Cpu className="h-4 w-4 text-slate-500" />
-                        <span className="font-medium text-slate-900 dark:text-white">Skills:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {agent.skills.slice(0, 5).map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {agent.skills.length > 5 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{agent.skills.length - 5}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    {agent.botHandle && (
-                      <div className="mt-4 text-sm">
-                        <span className="text-slate-500 dark:text-slate-400">Telegram: </span>
-                        <code className="rounded bg-slate-100 px-2 py-1 text-xs dark:bg-slate-800">
-                          {agent.botHandle}
-                        </code>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="space-y-4">
+            {agents.map((agent) => (
+              <AgentCard key={agent.id} agent={agent} />
+            ))}
           </div>
         )}
       </div>
