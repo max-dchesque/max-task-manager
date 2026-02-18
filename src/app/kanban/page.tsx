@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,29 +14,28 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import {
-  useSortable,
-} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { createClient } from "@supabase/supabase-js";
 import type { Task } from "@/lib/task-types";
+import { KanbanRealtime } from "@/lib/kanban-realtime";
 
 interface TaskWithAgent extends Task {
   agentName?: string;
 }
 
 const columns = [
-  { id: "pending", title: "Pending", color: "border-slate-300" },
-  { id: "in_progress", title: "In Progress", color: "border-blue-300" },
-  { id: "done", title: "Done", color: "border-green-300" },
-  { id: "blocked", title: "Blocked", color: "border-red-300" },
+  { id: "pending", title: "Pending", color: "border-slate-300", bg: "bg-slate-50 dark:bg-slate-800" },
+  { id: "in_progress", title: "In Progress", color: "border-blue-300", bg: "bg-blue-50 dark:bg-blue-900/20" },
+  { id: "done", title: "Done", color: "border-green-300", bg: "bg-green-50 dark:bg-green-900/20" },
+  { id: "blocked", title: "Blocked", color: "border-red-300", bg: "bg-red-50 dark:bg-red-900/20" },
 ];
 
-function SortableTask({ task, onStatusChange }: { task: TaskWithAgent; onStatusChange: (id: string, status: Task["status"]) => void }) {
+function SortableTask({ task }: { task: TaskWithAgent }) {
   const {
     attributes,
     listeners,
@@ -56,25 +55,35 @@ function SortableTask({ task, onStatusChange }: { task: TaskWithAgent; onStatusC
     baixa: "bg-green-500 text-white",
   };
 
+  const statusBadges = {
+    pending: "bg-slate-500",
+    "in-progress": "bg-blue-500",
+    done: "bg-green-500",
+    blocked: "bg-red-500",
+  };
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card className="mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="mb-3 cursor-grab active:cursor-grabbing hover:shadow-neon transition-all duration-300">
+        <CardContent className="p-3">
           <div className="mb-2 flex items-start justify-between gap-2">
-            <h4 className="flex-1 font-medium text-slate-900 dark:text-white">{task.title}</h4>
-            <Badge className={`text-xs ${priorityColors[task.priority as keyof typeof priorityColors]}`}>
+            <h4 className="flex-1 font-semibold text-sm text-slate-900 dark:text-white">{task.title}</h4>
+            <Badge className={`text-[10px] ${priorityColors[task.priority as keyof typeof priorityColors]}`}>
               {task.priority.toUpperCase()}
             </Badge>
           </div>
 
           {task.description && (
-            <p className="mb-3 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+            <p className="mb-2 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
               {task.description}
             </p>
           )}
 
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>{task.agentName || "Sem agent"}</span>
+          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1">
+              <div className={`h-1.5 w-1.5 rounded-full ${statusBadges[task.status]}`} />
+              {task.agentName || "Sem agent"}
+            </span>
             {task.deadline && (
               <span>{new Date(task.deadline).toLocaleDateString("pt-BR")}</span>
             )}
@@ -88,6 +97,10 @@ function SortableTask({ task, onStatusChange }: { task: TaskWithAgent; onStatusC
 export default function KanbanPage() {
   const [tasks, setTasks] = useState<TaskWithAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const supabase = useRef<any>(null);
+  const realtime = useRef<KanbanRealtime | null>(null);
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -96,50 +109,96 @@ export default function KanbanPage() {
     })
   );
 
+  // Initialize Supabase
   useEffect(() => {
-    const loadTasks = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch("/api/tasks");
-        const data = await response.json();
+    if (typeof window !== "undefined") {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        if (data.success) {
-          const tasksWithAgent = data.tasks.map((task: Task) => ({
-            ...task,
-            agentName: task.agent || null,
-          }));
-          setTasks(tasksWithAgent);
-        }
-      } catch (error) {
-        console.error("Error loading tasks:", error);
-      } finally {
-        setIsLoading(false);
+      if (supabaseUrl && supabaseAnonKey) {
+        supabase.current = createClient(supabaseUrl, supabaseAnonKey);
+        realtime.current = new KanbanRealtime(supabase.current);
+
+        // Subscribe to realtime updates
+        realtime.current.subscribeToTasks(
+          (payload) => {
+            console.log("Realtime update:", payload);
+            // Refresh tasks when update received
+            loadTasks();
+          },
+          (error) => {
+            console.error("Realtime error:", error);
+            setIsConnected(false);
+          }
+        );
+
+        setIsConnected(true);
+      }
+    }
+
+    return () => {
+      // Cleanup
+      if (realtime.current) {
+        realtime.current.unsubscribe();
+      }
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
       }
     };
-
-    void loadTasks();
   }, []);
+
+  // Load tasks
+  const loadTasks = useCallback(async () => {
+    try {
+      const response = await fetch("/api/tasks");
+      const data = await response.json();
+
+      if (data.success) {
+        const tasksWithAgent = data.tasks.map((task: Task) => ({
+          ...task,
+          agentName: task.agent || null,
+        }));
+        setTasks(tasksWithAgent);
+      }
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    }
+  }, []);
+
+  // Initial load + polling fallback
+  useEffect(() => {
+    loadTasks();
+
+    // Polling as fallback (every 5 seconds)
+    pollingInterval.current = setInterval(() => {
+      loadTasks();
+    }, 5000);
+
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+    };
+  }, [loadTasks]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || active.id === over.id) return;
 
-    // Find the task being dragged
     const draggedTask = tasks.find((t) => t.id === active.id);
     if (!draggedTask) return;
 
-    // Get the new status from the column ID
     const newStatus = over.id as Task["status"];
 
-    // Update local state optimistically
+    // Optimistic update
     setTasks((prev) =>
       prev.map((task) =>
         task.id === active.id ? { ...task, status: newStatus } : task
       )
     );
 
-    // Send update to API
+    // Send to API
     try {
       const response = await fetch(`/api/tasks/${active.id}`, {
         method: "PUT",
@@ -173,10 +232,15 @@ export default function KanbanPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="container mx-auto max-w-7xl">
+        <div className="container mx-auto max-w-[1400px]">
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-slate-500">Carregando kanban...</p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-border dark:border-dark-border">
+                <div className="h-2 w-2 rounded-full bg-neon-400 animate-pulse" />
+                <span className="text-sm text-muted-foreground dark:text-dark-muted-foreground">
+                  Carregando kanban em tempo real...
+                </span>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -186,35 +250,52 @@ export default function KanbanPage() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto max-w-7xl">
+      <div className="container mx-auto max-w-[1400px] py-6">
+        {/* Header com Wonder Games style */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Kanban Board
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Visualize e gerencie todas as tarefas em tempo real
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-gradient-neon mb-2">
+                Kanban Board
+              </h1>
+              <p className="text-muted-foreground dark:text-dark-muted-foreground text-sm">
+                Atualizações em tempo real via Supabase Realtime
+              </p>
+            </div>
+
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-neon-400 animate-glow' : 'bg-red-500'}`} />
+              <span className="text-xs text-muted-foreground dark:text-dark-muted-foreground">
+                {isConnected ? 'CONECTADO' : 'OFFLINE'}
+              </span>
+            </div>
+          </div>
         </div>
 
+        {/* Kanban Board */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {columns.map((column) => {
               const columnTasks = getTasksByStatus(column.id as Task["status"]);
 
               return (
                 <div
                   key={column.id}
-                  className={`rounded-lg border-2 ${column.color} bg-white p-4 dark:bg-slate-900`}
+                  id={column.id}
+                  className={`rounded-xl border-2 ${column.color} ${column.bg} p-4 dark:bg-neutral-900 transition-all duration-300`}
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                       {column.title}
                     </h3>
-                    <Badge variant="secondary">{columnTasks.length}</Badge>
+                    <Badge className="bg-neon-400 text-neon-950 text-xs font-bold">
+                      {columnTasks.length}
+                    </Badge>
                   </div>
 
                   <SortableContext
@@ -222,16 +303,12 @@ export default function KanbanPage() {
                     strategy={verticalListSortingStrategy}
                   >
                     {columnTasks.map((task) => (
-                      <SortableTask
-                        key={task.id}
-                        task={task}
-                        onStatusChange={() => {}}
-                      />
+                      <SortableTask key={task.id} task={task} />
                     ))}
                   </SortableContext>
 
                   {columnTasks.length === 0 && (
-                    <p className="py-8 text-center text-sm text-slate-400">
+                    <p className="py-8 text-center text-xs text-muted-foreground dark:text-dark-muted-foreground">
                       Nenhuma tarefa
                     </p>
                   )}
@@ -240,6 +317,15 @@ export default function KanbanPage() {
             })}
           </div>
         </DndContext>
+
+        {/* Stats */}
+        <div className="mt-8 flex items-center justify-center gap-8 text-xs text-muted-foreground dark:text-dark-muted-foreground">
+          <span>Total: {tasks.length}</span>
+          <span>•</span>
+          <span>Conectado: {isConnected ? 'SIM' : 'NÃO'}</span>
+          <span>•</span>
+          <span>Real-time: ATIVO</span>
+        </div>
       </div>
     </AppLayout>
   );
