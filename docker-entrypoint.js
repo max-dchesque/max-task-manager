@@ -5,8 +5,7 @@
  * Runs migrations then starts Next.js server
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
+const { execSync } = require('child_node');
 
 console.log('🔧 MAX Task Manager v2.0 - Starting...\n');
 
@@ -26,18 +25,17 @@ async function main() {
   const startTime = Date.now();
 
   try {
-    // Step 1: Generate Prisma Client
-    console.log('📦 Step 1/3: Prisma Client Generation');
-    console.log('========================================');
-    runCommand('npx --yes prisma@6 generate', 'Generating Prisma Client');
+    // Step 1: Database Migration (usa migrate deploy, não db push)
+    console.log('💾 Step 1/2: Database Migration');
+    console.log('=====================================');
+    const ok = runCommand(
+      'node_modules/.bin/prisma migrate deploy',
+      'Applying pending migrations'
+    );
+    if (!ok) process.exit(1);
 
-    // Step 2: Push schema to database
-    console.log('💾 Step 2/3: Database Setup');
-    console.log('=============================');
-    runCommand('npx --yes prisma@6 db push --skip-generate', 'Pushing schema to database');
-
-    // Step 3: Start server
-    console.log('🚀 Step 3/3: Starting Server');
+    // Step 2: Start server
+    console.log('🚀 Step 2/2: Starting Server');
     console.log('=============================');
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);

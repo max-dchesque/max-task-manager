@@ -1,83 +1,92 @@
-# MAX Task Manager - Production Dockerfile
-# Next.js 16.1.6 + Prisma 6.x + PostgreSQL
-# Audited and optimized after multiple deployment iterations
+# MAX Task Manager - Dockerfile Production
+# Next.js 16 (standalone) + Prisma 6.x + PostgreSQL
+# Multi-stage build: deps → builder → runner
+# Auditado por Claude Code CLI
 
 # =============================================================================
-# Stage 1: Dependencies
+# Versão base fixada para builds reproduzíveis
 # =============================================================================
-FROM node:20-alpine AS deps
+ARG NODE_VERSION=20.18-alpine3.21
+
+# =============================================================================
+# Stage 1: deps — instala dependências com cache isolado
+# =============================================================================
+FROM node:${NODE_VERSION} AS deps
+
+# openssl: necessário para Prisma gerar o client em Alpine
 RUN apk add --no-cache libc6-compat openssl
+
 WORKDIR /app
 
-# Install dependencies
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps && \
-    npm cache clean --force
+
+# Instala todas as dependências (dev + prod) necessárias para o build
+RUN npm ci --legacy-peer-deps
 
 # =============================================================================
-# Stage 2: Builder
+# Stage 2: builder — compila Next.js e gera Prisma Client
 # =============================================================================
-FROM node:20-alpine AS builder
+FROM node:${NODE_VERSION} AS builder
+
+RUN apk add --no-cache libc6-compat openssl
+
 WORKDIR /app
 
-# Copy dependencies from deps stage
+# Recebe node_modules já instalados
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy source code and config
+# Copia código fonte completo
 COPY . .
 
-# Build arguments
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Generate Prisma Client (before build)
-RUN npx --yes prisma@6 generate
+# Gera Prisma Client usando o binário local (não npx, sem download)
+# DATABASE_URL não é necessário para "generate" — só o schema.prisma é lido
+RUN node_modules/.bin/prisma generate
 
-# Build Next.js application
+# Build Next.js com output standalone
+# DATABASE_URL não deve ser passado como ARG de build — é segredo de runtime
 RUN npm run build
 
 # =============================================================================
-# Stage 3: Runner
+# Stage 3: runner — imagem de produção mínima
 # =============================================================================
-FROM node:20-alpine AS runner
+FROM node:${NODE_VERSION} AS runner
+
+# openssl + libssl: necessários para o Prisma Client funcionar em runtime
+RUN apk add --no-cache libc6-compat openssl
+
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Create non-root user
+# Cria usuário non-root
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy Next.js standalone output
-# Next.js 16 standalone: server.js is at root, .next is next to it
-COPY --from=builder /app/.next/standalone/server.js ./server.js
-COPY --from=builder /app/.next/standalone/.next ./.next
-COPY --from=builder /app/.next/standalone/node_modules ./node_modules
-COPY --from=builder /app/.next/standalone/package.json ./package.json
+# Copia toda a estrutura standalone de uma vez (inclui server.js, .next/, node_modules/, package.json)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 
-# Copy static assets
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/static ./.next/static
+# Adiciona arquivos estáticos públicos (não incluídos no standalone)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Copy Prisma files
-COPY --from=builder /app/prisma ./prisma
+# Adiciona os assets estáticos gerados (.next/static — CSS, JS, fontes)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy entrypoint script
-COPY --from=builder /app/docker-entrypoint.js ./docker-entrypoint.js
+# Copia schema do Prisma e o Prisma Client gerado para uso em runtime
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-# Set proper permissions
-RUN chmod +x docker-entrypoint.js && \
-    chown -R nextjs:nodejs /app
+# Copia o entrypoint (roda migrações e inicia o servidor)
+COPY --from=builder --chown=nextjs:nodejs /app/docker-entrypoint.js ./docker-entrypoint.js
 
-# Switch to non-root user
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-# Run the entrypoint script
+# DATABASE_URL e outros segredos são fornecidos em runtime via variáveis de ambiente
 CMD ["node", "docker-entrypoint.js"]
