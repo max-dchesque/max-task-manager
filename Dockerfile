@@ -51,14 +51,17 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy Next.js standalone output
-# Next.js 16 standalone structure: server.js is at the root
+# Next.js 16 standalone: server.js is at root, .next is next to it
 COPY --from=builder /app/.next/standalone/server.js ./server.js
+COPY --from=builder /app/.next/standalone/.next ./.next
 COPY --from=builder /app/.next/standalone/node_modules ./node_modules
 COPY --from=builder /app/.next/standalone/package.json ./package.json
 
-# Copy static assets and Prisma files
+# Copy static assets
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/static ./server-app/.next/static
+COPY --from=builder /app/.next/static ./.next/static
+
+# Copy Prisma files
 COPY --from=builder /app/prisma ./prisma
 
 # Copy entrypoint script
