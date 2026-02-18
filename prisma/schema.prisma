@@ -11,13 +11,20 @@ datasource db {
 }
 
 model Agent {
-  id        String   @id @default(cuid())
-  name      String
-  botHandle String?  @unique
-  role      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tasks     Task[]
+  id          String    @id @default(cuid())
+  name        String
+  botHandle   String?   @unique
+  role        String
+  description String?
+  emoji       String?   @default("🤖")
+  color       String?   @default("#3B82F6")
+  status      String    @default("offline") // online, offline, busy
+  parentId    String?
+  parent      Agent?    @relation("AgentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Agent[]   @relation("AgentHierarchy")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tasks       Task[]
 }
 
 model Task {
