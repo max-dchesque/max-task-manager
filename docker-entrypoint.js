@@ -5,7 +5,7 @@
  * Runs migrations then starts Next.js server
  */
 
-const { execSync } = require('child_node');
+const { execSync } = require('child_process');
 
 console.log('🔧 MAX Task Manager v2.0 - Starting...\n');
 
