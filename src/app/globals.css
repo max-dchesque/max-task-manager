@@ -4,61 +4,17 @@
 
 @layer base {
   :root {
-    /* Wonder Games Design System - Adaptado para MAX Task Manager */
-
-    /* Cores Primárias - Neon Brand */
+    /* Wonder Games Design System - CSS Variables */
     --neon-400: 212 251 8;   /* #D4FB08 - principal */
     --neon-500: 186 226 0;   /* #BAE200 - hover */
     --neon-950: 37 51 0;    /* #253300 - texto sobre neon */
-
-    /* Light Mode Colors */
-    --background: 255 255 255;  /* #FFFFFF */
-    --foreground: 0 0 0;      /* #000000 */
-    --card: 255 255 255;       /* #FFFFFF */
-    --card-foreground: 0 0 0;
-    --border: 229 229 229;    /* #E5E5E5 */
-    --primary: 212 251 8;     /* neon */
-    --primary-foreground: 37 51 0;
-    --secondary: 130 130 130; /* grey-700 */
-    --muted: 229 229 229;
-    --muted-foreground: 130 130 130;
-    --accent: 212 251 8;
-    --accent-foreground: 37 51 0;
-
-    /* Dark Mode Colors */
-    --dark-background: 10 10 10;      /* #0A0A0A */
-    --dark-foreground: 255 255 255;
-    --dark-card: 37 37 37;             /* #252525 */
-    --dark-card-foreground: 255 255 255;
-    --dark-border: 130 130 130;
-    --dark-primary: 212 251 8;
-    --dark-primary-foreground: 37 51 0;
-    --dark-secondary: 130 130 130;
-    --dark-muted: 37 37 37;
-    --dark-muted-foreground: 229 229 229;
 
     /* Layout Tokens */
     --gap: 8px;
     --radius: 16px;
     --h-controller: 80px;
 
-    /* Spacing */
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
-    --spacing-2xl: 64px;
-
-    /* Border Radius */
-    --radius-sm: 8px;
-    --radius-md: 10px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-    --radius-2xl: 24px;
-    --radius-full: 9999px;
-
-    /* Shadows - Glassmorphism */
+    /* Shadows */
     --shadow-glass: inset 0 1px 3px 0 rgba(255, 255, 255, 0.05),
                   inset -1px -1px 3px 0 rgba(0, 0, 0, 0.1),
                   inset -1px -1px 0 0 rgba(0, 0, 0, 0.2);
@@ -68,28 +24,22 @@
                   0 1px 3px 0 rgba(0, 0, 0, 0.3);
 
     --shadow-neon: 0 0 4px rgb(212, 251, 8);
-
     --shadow-glow: inset 0 0 20px 5px rgba(165, 167, 171, 0.2);
-  }
-
-  .dark {
-    --background: var(--dark-background);
-    --foreground: var(--dark-foreground);
-    --card: var(--dark-card);
-    --card-foreground: var(--dark-card-foreground);
-    --border: var(--dark-border);
-    --primary: var(--dark-primary);
-    --primary-foreground: var(--dark-primary-foreground);
   }
 }
 
 @layer base {
   * {
-    @apply border-slate-200 dark:border-slate-700;
+    border-color: rgb(229 229 229);
+  }
+
+  .dark * {
+    border-color: rgb(51 65 85);
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white dark:bg-neutral-950;
+    @apply text-black dark:text-white;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
