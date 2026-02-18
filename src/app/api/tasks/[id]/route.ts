@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 // GET /api/tasks/[id] - Get single task
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!task) {
@@ -27,14 +28,15 @@ export async function GET(
 // PUT /api/tasks/[id] - Update task (DRAG & DROP)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { status, title, description, priority, deadline, agent } = body;
 
     const task = await prisma.task.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(status !== undefined && { status }),
         ...(title !== undefined && { title }),
@@ -56,11 +58,12 @@ export async function PUT(
 // DELETE /api/tasks/[id] - Delete task
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.task.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true, message: "Task deleted" });
