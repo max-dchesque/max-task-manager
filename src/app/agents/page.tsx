@@ -35,78 +35,78 @@ function TreeNode({ agent, level = 0 }: { agent: Agent; level?: number }) {
 
   return (
     <div className="flex flex-col items-center">
-      {/* Wonder Games Gradient Card */}
+      {/* Wonder Games Gradient Card - COMPACTO */}
       <Card
-        className="w-72 shadow-card hover:shadow-neon transition-all duration-500 hover:scale-105 overflow-hidden"
+        className="w-48 shadow-card hover:shadow-neon transition-all duration-300 hover:scale-105 overflow-hidden"
         style={gradientStyle}
       >
         {/* Neon Glow Bar at top */}
-        <div className={`h-1 w-full bg-neon-400 animate-glow`} />
+        <div className={`h-0.5 w-full bg-neon-400 animate-glow`} />
 
-        <div className="p-6">
+        <div className="p-3">
           {/* Header with emoji and status */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
               {agent.emoji && (
-                <span className="text-4xl drop-shadow-lg">{agent.emoji}</span>
+                <span className="text-2xl drop-shadow-lg">{agent.emoji}</span>
               )}
               <div>
-                <h3 className="text-xl font-bold text-white drop-shadow-md">
+                <h3 className="text-sm font-bold text-white drop-shadow-md leading-tight">
                   {agent.name}
                 </h3>
-                <p className="text-white/90 text-sm font-medium">
+                <p className="text-white/90 text-xs font-medium">
                   {agent.role}
                 </p>
               </div>
             </div>
 
-            {/* Status Badge - Neon Style */}
+            {/* Status Badge - Compact */}
             <Badge
               className={`${
                 statusColors[agent.status as keyof typeof statusColors] || 'bg-neutral-700'
-              } text-white border-0 text-xs font-bold px-3 py-1 rounded-full shadow-lg`}
+              } text-white border-0 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg`}
             >
               {agent.status?.toUpperCase() || 'OFFLINE'}
             </Badge>
           </div>
 
-          {/* Description */}
+          {/* Description - Compact */}
           {agent.description && (
-            <p className="text-sm text-white/95 mb-4 line-clamp-2 font-medium drop-shadow">
+            <p className="text-xs text-white/95 mb-2 line-clamp-1 font-medium drop-shadow">
               {agent.description}
             </p>
           )}
 
-          {/* Footer with children count */}
+          {/* Footer with children count - Compact */}
           {hasChildren && (
-            <div className="flex items-center gap-2 pt-3 border-t border-white/20">
-              <div className="h-2 w-2 rounded-full bg-neon-400 animate-glow" />
-              <span className="text-xs text-white font-semibold">
-                {agent.children.length} SUBAGENT{agent.children.length > 1 ? 'S' : ''}
+            <div className="flex items-center gap-1.5 pt-2 border-t border-white/20">
+              <div className="h-1.5 w-1.5 rounded-full bg-neon-400 animate-glow" />
+              <span className="text-[10px] text-white font-semibold">
+                {agent.children.length}
               </span>
             </div>
           )}
         </div>
       </Card>
 
-      {/* Connection Lines - Wonder Games Style */}
+      {/* Connection Lines - Wonder Games Style - COMPACT */}
       {hasChildren && (
-        <div className="relative mt-6">
+        <div className="relative mt-3">
           {/* Vertical line */}
-          <div className="absolute left-1/2 top-0 w-0.5 h-6 -translate-x-1/2 bg-gradient-to-b from-white/40 to-transparent" />
+          <div className="absolute left-1/2 top-0 w-0.5 h-3 -translate-x-1/2 bg-gradient-to-b from-white/40 to-transparent" />
 
           {/* Horizontal line */}
-          <div className="absolute left-1/2 top-6 w-full h-0.5 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          <div className="absolute left-1/2 top-3 w-full h-0.5 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
-          {/* Children container */}
-          <div className="flex justify-center gap-12 mt-6">
+          {/* Children container - Compact gap */}
+          <div className="flex justify-center gap-6 mt-3">
             {agent.children.map((child, index) => (
               <div key={child.id} className="relative flex flex-col items-center">
                 {/* Vertical connector */}
-                <div className="absolute top-0 left-1/2 w-0.5 h-6 -translate-x-1/2 bg-gradient-to-b from-white/40 to-transparent" />
+                <div className="absolute top-0 left-1/2 w-0.5 h-3 -translate-x-1/2 bg-gradient-to-b from-white/40 to-transparent" />
 
                 {/* Child node */}
-                <div className="mt-6">
+                <div className="mt-3">
                   <TreeNode agent={child} level={level + 1} />
                 </div>
               </div>
@@ -154,30 +154,30 @@ export default function AgentsPage() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto max-w-full py-8">
-        <div className="mb-12 text-center">
-          <h1 className="text-5xl font-bold text-gradient-neon mb-3">
+      <div className="container mx-auto max-w-full py-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gradient-neon mb-2">
             Agent Tree
           </h1>
-          <p className="text-muted-foreground dark:text-dark-muted-foreground text-lg">
+          <p className="text-muted-foreground dark:text-dark-muted-foreground text-sm">
             Hierarquia completa dos agentes do OpenClaw
           </p>
         </div>
 
         {isLoading ? (
           <Card className="bg-card dark:bg-dark-card border-border dark:border-dark-border">
-            <div className="p-12 text-center">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-border dark:border-dark-border">
-                <div className="h-2 w-2 rounded-full bg-neon-400 animate-glow" />
-                <span className="text-sm text-muted-foreground dark:text-dark-muted-foreground">
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-border dark:border-dark-border">
+                <div className="h-1.5 w-1.5 rounded-full bg-neon-400 animate-glow" />
+                <span className="text-xs text-muted-foreground dark:text-dark-muted-foreground">
                   Carregando agentes...
                 </span>
               </div>
             </div>
           </Card>
         ) : (
-          <div className="flex justify-center overflow-x-auto pb-12">
-            <div className="flex flex-col items-center gap-16">
+          <div className="flex justify-center overflow-x-auto pb-8">
+            <div className="flex flex-col items-center gap-10">
               {agents.map((agent) => (
                 <TreeNode key={agent.id} agent={agent} />
               ))}
