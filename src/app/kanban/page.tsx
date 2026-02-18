@@ -20,9 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { createClient } from "@supabase/supabase-js";
 import type { Task } from "@/lib/task-types";
-import { KanbanRealtime } from "@/lib/kanban-realtime";
 
 interface TaskWithAgent extends Task {
   agentName?: string;
@@ -97,9 +95,6 @@ function SortableTask({ task }: { task: TaskWithAgent }) {
 export default function KanbanPage() {
   const [tasks, setTasks] = useState<TaskWithAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
-  const supabase = useRef<any>(null);
-  const realtime = useRef<KanbanRealtime | null>(null);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   const sensors = useSensors(
@@ -108,44 +103,6 @@ export default function KanbanPage() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Initialize Supabase
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      if (supabaseUrl && supabaseAnonKey) {
-        supabase.current = createClient(supabaseUrl, supabaseAnonKey);
-        realtime.current = new KanbanRealtime(supabase.current);
-
-        // Subscribe to realtime updates
-        realtime.current.subscribeToTasks(
-          (payload) => {
-            console.log("Realtime update:", payload);
-            // Refresh tasks when update received
-            loadTasks();
-          },
-          (error) => {
-            console.error("Realtime error:", error);
-            setIsConnected(false);
-          }
-        );
-
-        setIsConnected(true);
-      }
-    }
-
-    return () => {
-      // Cleanup
-      if (realtime.current) {
-        realtime.current.unsubscribe();
-      }
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
-    };
-  }, []);
 
   // Load tasks
   const loadTasks = useCallback(async () => {
@@ -165,11 +122,11 @@ export default function KanbanPage() {
     }
   }, []);
 
-  // Initial load + polling fallback
+  // Initial load + polling for real-time updates
   useEffect(() => {
     loadTasks();
 
-    // Polling as fallback (every 5 seconds)
+    // Poll every 5 seconds for updates
     pollingInterval.current = setInterval(() => {
       loadTasks();
     }, 5000);
@@ -259,15 +216,15 @@ export default function KanbanPage() {
                 Kanban Board
               </h1>
               <p className="text-muted-foreground dark:text-dark-muted-foreground text-sm">
-                Atualizações em tempo real via Supabase Realtime
+                Atualizações automáticas a cada 5 segundos (Polling)
               </p>
             </div>
 
-            {/* Connection Status */}
+            {/* Polling Status */}
             <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-neon-400 animate-glow' : 'bg-red-500'}`} />
+              <div className="h-2 w-2 rounded-full bg-neon-400 animate-glow" />
               <span className="text-xs text-muted-foreground dark:text-dark-muted-foreground">
-                {isConnected ? 'CONECTADO' : 'OFFLINE'}
+                AUTO-SYNC ATIVO
               </span>
             </div>
           </div>
@@ -322,7 +279,7 @@ export default function KanbanPage() {
         <div className="mt-8 flex items-center justify-center gap-8 text-xs text-muted-foreground dark:text-dark-muted-foreground">
           <span>Total: {tasks.length}</span>
           <span>•</span>
-          <span>Conectado: {isConnected ? 'SIM' : 'NÃO'}</span>
+          <span>Polling: 5 segundos</span>
           <span>•</span>
           <span>Real-time: ATIVO</span>
         </div>
